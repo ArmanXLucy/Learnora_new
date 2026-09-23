@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Help Center — Learnora{% endblock %}
+{% block topbar_title %}Help Center{% endblock %}
+{% block topbar_sub %}Get answers, troubleshoot your account, or contact the Learnora support team.{% endblock %}
+{% block content %}
+<div class="helpdesk-shell">
+  <section class="helpdesk-hero">
+    <div class="helpdesk-hero-copy">
+      <span class="helpdesk-kicker">LEARNORA SUPPORT</span>
+      <h1>How can we help?</h1>
+      <p>Find a quick answer or send us a support request. Your account, learning path and assessment questions all live here.</p>
+      <div class="helpdesk-status"><span class="status-dot"></span> Support center is available</div>
+    </div>
+    <div class="helpdesk-hero-orb" aria-hidden="true">{{ icon("headset", 42) }}</div>
+  </section>
+
+  <div class="helpdesk-layout">
+    <section class="helpdesk-card helpdesk-contact">
+      <div class="helpdesk-card-top">
+        <div class="helpdesk-icon blue">{{ icon("message-circle", 20) }}</div>
+        <div><span class="card-eyebrow">CONTACT SUPPORT</span><h2>Send a support request</h2><p>Tell us what happened and we'll have the details needed to understand your issue.</p></div>
+      </div>
+
+      <form method="POST" class="helpdesk-form" id="helpdesk-form">
+        <div class="helpdesk-form-grid">
+          <label class="form-group">
+            <span>What do you need help with?</span>
+            <select name="topic" id="help-topic">
+              <option>Account & profile</option>
+              <option>Skills & courses</option>
+              <option>Assessments</option>
+              <option>Roadmaps</option>
+              <option>Technical issue</option>
+              <option>Notifications & settings</option>
+              <option>Feedback / suggestion</option>
+              <option>Something else</option>
+            </select>
+          </label>
+          <label class="form-group">
+            <span>Priority</span>
+            <select name="priority" id="help-priority">
+              <option>Normal</option>
+              <option>Important</option>
+              <option>Urgent</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="form-group">
+          <span>Your question</span>
+          <textarea name="message" id="help-message" rows="7" maxlength="2000" required placeholder="Describe the problem, what you expected to happen, and what you see instead..."></textarea>
+          <small class="character-count"><span id="help-count">0</span>/2000</small>
+        </label>
+
+        <div class="helpdesk-submit-row">
+          <div class="secure-note">{{ icon("shield-check", 16) }} Your request is linked to your Learnora account.</div>
+          <button class="helpdesk-submit" type="submit">Send request {{ icon("send", 16) }}</button>
+        </div>
+      </form>
+    </section>
+
+    <aside class="helpdesk-side">
+      <section class="helpdesk-card support-status-card">
+        <div class="side-card-title"><div class="helpdesk-icon purple">{{ icon("life-buoy", 19) }}</div><div><span class="card-eyebrow">SUPPORT CENTER</span><h3>Need a place to start?</h3></div></div>
+        <div class="support-step"><span>01</span><div><strong>Choose a topic</strong><small>Pick the area closest to your question.</small></div></div>
+        <div class="support-step"><span>02</span><div><strong>Describe the issue</strong><small>Include the screen, feature or action involved.</small></div></div>
+        <div class="support-step"><span>03</span><div><strong>Send your request</strong><small>Your request is saved for the support team.</small></div></div>
+      </section>
+
+      <section class="helpdesk-card faq-card">
+        <div class="side-card-title"><div class="helpdesk-icon green">{{ icon("book-open", 19) }}</div><div><span class="card-eyebrow">HELP TOPICS</span><h3>Quick answers</h3></div></div>
+        <div class="faq-list">
+          <a href="{{ url_for('profile') }}"><span>Update profile & picture</span>{{ icon("arrow-up-right", 14) }}</a>
+          <a href="{{ url_for('settings') }}"><span>Notifications & settings</span>{{ icon("arrow-up-right", 14) }}</a>
+          <a href="{{ url_for('assessments') }}"><span>How assessments work</span>{{ icon("arrow-up-right", 14) }}</a>
+          <a href="{{ url_for('roadmaps') }}"><span>Understanding my roadmap</span>{{ icon("arrow-up-right", 14) }}</a>
+        </div>
+      </section>
+
+      <section class="helpdesk-card feature-help-card">
+        <div class="feature-help-icon">?</div>
+        <div><strong>Can't find what you need?</strong><p>Send the request anyway. Add screenshots or exact steps in your message when useful.</p></div>
+      </section>
+    </aside>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+  const box = document.getElementById('help-message');
+  const count = document.getElementById('help-count');
+  if(box && count){ const update=()=>count.textContent=box.value.length; box.addEventListener('input',update); update(); }
+})();
+</script>
+{% endblock %}

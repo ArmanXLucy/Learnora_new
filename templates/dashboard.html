@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Dashboard — Learnora{% endblock %}
+{% block topbar_title %}Hello, {{ user.name.split(' ')[0] }} 👋{% endblock %}
+{% block topbar_sub %}Let's close a skill gap today!{% endblock %}
+
+{% block topbar_extra %}
+<div class="streak-tab-wrap">
+  <button class="streak-tab" id="streak-tab" type="button" aria-expanded="false" aria-controls="streak-popover">
+    <span class="streak-tab-icon">{{ icon("flame", 16) }}</span>
+    <span class="streak-tab-copy">
+      <strong>{{ streak.current_streak }}</strong>
+      <span>day streak</span>
+    </span>
+    {{ icon("chevron-down", 14) }}
+  </button>
+  <div class="streak-popover" id="streak-popover" hidden>
+    <div class="streak-popover-head">
+      <div>
+        <span class="streak-eyebrow">YOUR STREAK</span>
+        <strong>Keep the momentum going 🔥</strong>
+      </div>
+      <span class="streak-popover-flame">{{ icon("flame", 19) }}</span>
+    </div>
+    <div class="streak-stats">
+      <div><strong>{{ streak.current_streak }}</strong><span>Current</span></div>
+      <div><strong>{{ streak.longest_streak }}</strong><span>Longest</span></div>
+      <div><strong>{{ streak.total_active_days }}</strong><span>Active days</span></div>
+    </div>
+    <div class="streak-week-label"><span>Last 28 days</span><span>{{ streak.total_active_days }} active</span></div>
+    <div class="streak-mini-grid">
+      {% set recent = streak.active_dates[-28:] %}
+      {% for i in range(28 - recent|length) %}<span></span>{% endfor %}
+      {% for d in recent %}<span class="active" title="{{ d }}"></span>{% endfor %}
+    </div>
+  </div>
+</div>
+<div class="notification-wrap" id="notification-wrap">
+  <button class="notification-button" id="notification-button" type="button" aria-expanded="false" aria-controls="notification-popover" aria-label="Open notifications">
+    {{ icon("bell", 17) }}
+    <span class="notification-dot" id="notification-dot" hidden></span>
+  </button>
+  <div class="notification-popover" id="notification-popover" hidden>
+    <div class="notification-head">
+      <h4>Notifications</h4>
+      <button type="button" id="notification-close" aria-label="Close notifications">{{ icon("x", 15) }}</button>
+    </div>
+    <div class="notification-list" id="notification-list"></div>
+    <div class="notification-footer">
+      <button type="button" id="notification-read-all">Mark all as read</button>
+      <a href="{{ url_for('settings') }}">Notification settings {{ icon("chevron-right", 13) }}</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% set tones = ["blue", "purple", "green", "amber"] %}
+
+<h2 class="section-title">What do you want to learn today?</h2>
+<div class="search-bar">
+  <div class="input-wrap">
+    {{ icon("search", 17) }}
+    <input type="text" id="skill-search" autocomplete="off"
+           placeholder="Search a skill (try 'py', 'dsa', 'system design', 'git'...)">
+  </div>
+  <div class="search-results" id="search-results" style="display:none;"></div>
+</div>
+
+<!-- ============================================= my skills ==== -->
+<div class="course-heading" id="my-skills">
+  <h3>My Skills</h3>
+  <a class="text-button" href="#explore">Explore all {{ icon("chevron-right", 14) }}</a>
+</div>
+
+{% if skill_progress %}
+<div class="skill-grid">
+  {% for s in skill_progress %}
+  <article class="skill-card">
+    <div class="skill-card-top">
+      <div class="skill-icon {{ tones[loop.index0 % 4] }}">{{ icon("map", 22) }}</div>
+      <span class="pct-pill">{{ s.percent }}%</span>
+    </div>
+    <h3>{{ s.display_name }}</h3>
+    <div class="progress-bar-bg"><span class="progress-bar-fill" style="width:{{ s.percent }}%"></span></div>
+    <div class="skill-meta">{{ s.mastered_count }}/{{ s.total_topics }} topics mastered</div>
+    <a href="{{ url_for('roadmap', skill_id=s.skill_id) }}" class="btn secondary small">
+      Continue learning {{ icon("arrow-right", 15) }}
+    </a>
+  </article>
+  {% endfor %}
+</div>
+
+<!-- ============================================= analytics ==== -->
+<div class="analytics-grid">
+  <div class="analytics-card">
+    <div class="card-heading">
+      <h4>This Week's Activity</h4>
+      <span>{{ streak.current_streak }} day streak</span>
+    </div>
+    <div class="bar-chart">
+      {% for d in week_activity %}
+      <div class="bar-column" title="{{ d.date }}">
+        <span style="height:{{ 82 if d.active else 14 }}%; {{ 'opacity:.35' if not d.active }}"></span>
+        <small>{{ d.label }}</small>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="analytics-card performance-card">
+    <div class="card-heading"><h4>Overall Progress</h4>{{ icon("trophy", 16) }}</div>
+    <div class="score-ring"><strong>{{ overall_percent }}%</strong></div>
+    <small>Across {{ skill_progress|length }} enrolled skill{{ '' if skill_progress|length == 1 else 's' }}</small>
+  </div>
+
+  <div class="analytics-card performance-card">
+    <div class="card-heading"><h4>Topics Mastered</h4>{{ icon("badge-check", 16) }}</div>
+    <div class="score-ring"><strong>{{ total_mastered }}</strong></div>
+    <small>of {{ total_topics }} topics on your roadmaps</small>
+  </div>
+</div>
+{% else %}
+<div class="empty-state">
+  You haven't started a skill yet — search above, or pick one from Explore below to take your first assessment.
+</div>
+{% endif %}
+
+<!-- =============================================== explore ==== -->
+<div class="course-heading" id="explore">
+  <h3>Explore All Skills</h3>
+</div>
+<div class="skill-grid">
+  {% for sid, meta in all_skills.items() %}
+  <article class="skill-card">
+    <div class="skill-icon {{ tones[loop.index0 % 4] }}">{{ icon("book-open", 22) }}</div>
+    <h3>{{ meta.display_name }}</h3>
+    <p>{{ meta.description }}</p>
+    <div class="skill-meta">{{ icon("list-checks", 13) }} {{ meta.topics|length }} topics</div>
+    <a href="{{ url_for('start_skill', skill_id=sid) }}" class="btn ghost small">
+      Start / Continue {{ icon("arrow-right", 14) }}
+    </a>
+  </article>
+  {% endfor %}
+</div>
+{% endblock %}
+
+
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+  (function () {
+    const button = document.getElementById('streak-tab');
+    const popover = document.getElementById('streak-popover');
+    if (!button || !popover) return;
+    const close = () => { popover.hidden = true; button.setAttribute('aria-expanded', 'false'); button.classList.remove('open'); };
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const next = popover.hidden;
+      popover.hidden = !next;
+      button.setAttribute('aria-expanded', String(next));
+      button.classList.toggle('open', next);
+    });
+    document.addEventListener('click', (event) => {
+      if (!popover.contains(event.target) && !button.contains(event.target)) close();
+    });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); });
+  })();
+</script>
+<script>
+(function(){
+  const wrap=document.getElementById('notification-wrap');
+  const button=document.getElementById('notification-button');
+  const pop=document.getElementById('notification-popover');
+  const list=document.getElementById('notification-list');
+  const dot=document.getElementById('notification-dot');
+  const close=document.getElementById('notification-close');
+  const readAll=document.getElementById('notification-read-all');
+  if(!wrap||!button||!pop||!list) return;
+
+  const key='learnora-notifications-read-v1';
+  const currentStreak={{ streak.current_streak|default(0) }};
+  const notifications=[
+    {id:'welcome',title:'Welcome to Learnora',body:'Your learning dashboard is ready. Pick a skill and start your next topic.',time:'Today',href:'{{ url_for('dashboard') }}',icon:'sparkles'},
+    {% if streak.current_streak > 0 %}{id:'streak',title:'Your streak is active 🔥',body:'You currently have a {{ streak.current_streak }} day learning streak. Keep it going today.',time:'Today',href:'{{ url_for('dashboard') }}',icon:'flame'},
+    {% endif %}
+    {id:'assessment',title:'Assess your skill level',body:'Take an assessment to identify topic gaps and build a focused learning path.',time:'Suggested',href:'{{ url_for('assessments') }}',icon:'list-checks'}
+  ];
+  const getRead=()=>{try{return JSON.parse(localStorage.getItem(key)||'[]')}catch(e){return[]}};
+  const setRead=v=>{try{localStorage.setItem(key,JSON.stringify(v))}catch(e){}};
+  let read=getRead();
+  function render(){
+    const unread=notifications.filter(n=>!read.includes(n.id));
+    dot.hidden=unread.length===0;
+    list.innerHTML=notifications.length ? notifications.map(n=>`<a class="notification-item ${read.includes(n.id)?'':'unread'}" href="${n.href}" data-id="${n.id}"><span class="notification-item-icon">${iconSvg(n.icon)}</span><span class="notification-item-copy"><strong>${escapeHtml(n.title)}</strong><span>${escapeHtml(n.body)}</span><span class="notification-time">${escapeHtml(n.time)}</span></span></a>`).join('') : '<div class="notification-empty">You're all caught up.</div>';
+  }
+  function iconSvg(name){
+    const map={sparkles:'<svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3-1.4 4.6L6 9l4.6 1.4L12 15l1.4-4.6L18 9l-4.6-1.4L12 3Z"/><path d="m19 14-.7 2.3L16 17l2.3.7L19 20l.7-2.3L22 17l-2.3-.7L19 14Z"/></svg>',flame:'<svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22a7 7 0 0 0 7-7c0-4.6-3.3-6.6-4.8-10.5-.2-.6-.4-1.2-.5-1.8C10.8 4.2 9 7 9 10c0 1-.3 1.8-.8 2.5C7 11.7 6.5 10.5 6.6 9 4.8 11 5 13.6 5 15a7 7 0 0 0 7 7Z"/></svg>', 'list-checks':'<svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 6h12M9 12h12M9 18h12"/><path d="m3 6 1.5 1.5L7 5M3 12l1.5 1.5L7 11M3 18l1.5 1.5L7 17"/></svg>'}; return map[name]||map.sparkles;
+  }
+  function escapeHtml(v){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+  function open(){pop.hidden=false;button.setAttribute('aria-expanded','true');render();}
+  function shut(){pop.hidden=true;button.setAttribute('aria-expanded','false');}
+  button.addEventListener('click',e=>{e.stopPropagation();pop.hidden?open():shut()});
+  close?.addEventListener('click',shut);
+  pop.addEventListener('click',e=>{
+    const item=e.target.closest('.notification-item');
+    if(item){const id=item.dataset.id;if(id&&!read.includes(id)){read=[...read,id];setRead(read);}}
+    e.stopPropagation();
+  });
+  readAll?.addEventListener('click',()=>{read=notifications.map(n=>n.id);setRead(read);render()});
+  document.addEventListener('click',e=>{if(!wrap.contains(e.target))shut()});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')shut()});
+  render();
+})();
+</script>
+
+{% endblock %}

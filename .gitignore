@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+serviceAccountKey.json
+*-firebase-adminsdk-*.json
+instance/*.db
+instance/syllabi/
+static/uploads/avatars/
+__pycache__/
+*.py[cod]

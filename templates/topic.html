@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ meta.display }} — Learnora{% endblock %}
+{% block topbar_title %}{{ meta.display }}{% endblock %}
+{% block topbar_sub %}{{ skill.display_name }}{% endblock %}
+
+{% block crumbs %}
+<div class="app-crumbs">
+  <a href="{{ url_for('dashboard') }}">Dashboard</a>
+  <span class="sep">/</span>
+  <a href="{{ url_for('roadmap', skill_id=skill_id) }}">{{ skill.display_name }}</a>
+  <span class="sep">/</span>
+  <span>{{ meta.display }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="topic-hero">
+  <span class="auth-badge">{{ icon("book-open", 14) }} Topic {{ meta.difficulty }}/5 · ~{{ meta.hours }} hrs</span>
+  <h1>{{ meta.display }}</h1>
+  <p>{{ meta.keywords }}</p>
+</div>
+
+<!-- ================================================= playlists ==== -->
+{% if playlists %}
+<div class="playlist-section">
+  <div class="playlist-section-header">
+    <h2 class="section-title" style="margin:0;">{{ icon("youtube", 17) }} Choose a playlist</h2>
+    <div class="level-toggle">
+      <button type="button" class="level-btn active" onclick="filterLevel('all', this)">All</button>
+      <button type="button" class="level-btn" onclick="filterLevel('basic', this)">Basic</button>
+      <button type="button" class="level-btn" onclick="filterLevel('advanced', this)">Advanced</button>
+    </div>
+  </div>
+
+  <div class="playlist-row" id="playlist-row">
+    {% for p in playlists %}
+    <div class="playlist-card" data-level="{{ p.level }}"
+         onclick="selectPlaylist('{{ p.playlist_id or '' }}', '{{ p.creator|e }}', '{{ p.title|e }}', {{ 'true' if p.playlist_id else 'false' }})">
+      <div class="playlist-card-thumb">{{ icon("play", 18) }}</div>
+      <div class="playlist-card-body">
+        <span class="badge {{ p.level }}">{{ p.level }}</span>
+        <strong>{{ p.creator }}</strong>
+        <p>{{ p.title }}</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div id="playlist-player-wrap" style="display:none; margin-top:18px;">
+    <div class="video-frame-wrap">
+      <iframe id="playlist-player" src="" allowfullscreen></iframe>
+    </div>
+    <p id="playlist-status" class="video-caption"></p>
+  </div>
+</div>
+{% endif %}
+
+<!-- ================================================== creators ==== -->
+{% if videos %}
+<h2 class="section-title">{{ icon("play", 17) }} Watch this topic</h2>
+
+<div class="creator-tabs">
+  {% for v in videos %}
+  <button type="button" class="creator-tab {{ 'active' if loop.first }}" onclick="showCreator({{ loop.index0 }})">
+    {{ v.creator }}
+  </button>
+  {% endfor %}
+</div>
+
+{% for v in videos %}
+<div class="creator-panel" id="creator-panel-{{ loop.index0 }}" style="display:{{ 'block' if loop.first else 'none' }}">
+  {% if v.mode == 'embed' %}
+    <div class="video-frame-wrap">
+      <iframe id="player-{{ loop.index0 }}"
+              src="https://www.youtube.com/embed/{{ v.video_id }}?cc_load_policy=1{% if v.start_seconds %}&start={{ v.start_seconds }}{% endif %}"
+              allowfullscreen></iframe>
+    </div>
+
+    {% if v.is_estimate %}
+    <p class="estimate-badge">
+      ⏱ Jumped to an <strong>estimated</strong> position for this topic (based on where it typically falls in the
+      course) — not an exact verified timestamp. Scrub the seek bar or use the player's chapter list if it's off.
+    </p>
+    {% endif %}
+
+    <p class="video-caption">{{ v.title }}</p>
+
+    <div class="transcript-box">
+      <div class="transcript-header">
+        <span>{{ icon("file-text", 15) }} Translate &amp; show transcript below the video</span>
+        <select class="transcript-lang" onchange="loadTranscript('{{ v.video_id }}', {{ loop.index0 }}, this.value)">
+          <option value="">Choose a language...</option>
+          {% for code, label in languages %}
+          <option value="{{ code }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="transcript-body" id="transcript-{{ loop.index0 }}">
+        <span class="transcript-hint">
+          Pick a language above to fetch and translate this video's transcript here.
+          If unavailable, use the player's own CC/gear icon instead.
+        </span>
+      </div>
+    </div>
+  {% else %}
+    <div class="search-link-card">
+      <p>{{ v.title }}</p>
+      <a href="{{ v.url }}" target="_blank" rel="noopener" class="btn secondary">
+        Open on YouTube {{ icon("arrow-right", 15) }}
+      </a>
+    </div>
+  {% endif %}
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- ====================================================== docs ==== -->
+{% if docs %}
+<h2 class="section-title">{{ icon("file-text", 17) }} Blogs &amp; docs</h2>
+<div class="docs-grid">
+  {% for d in docs %}
+  <a href="{{ d.url }}" target="_blank" rel="noopener" class="docs-card">
+    <strong>{{ icon("arrow-right", 14) }} {{ d.label }}</strong>
+    <p>{{ d.blurb }}</p>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- ================================================ self-check ==== -->
+{% if test_questions %}
+<h2 class="section-title">{{ icon("list-checks", 17) }} Quick check — test yourself</h2>
+<p style="color:var(--muted); font-size:13.5px; margin:0 0 16px;">
+  Score 60% or more and this topic is marked mastered, unlocking whatever depends on it.
+</p>
+
+<form method="POST" action="{{ url_for('topic_page', skill_id=skill_id, topic_id=topic_id) }}">
+  <div class="quiz-topic">
+    {% for q in test_questions %}
+    {% set qi = loop.index0 %}
+    <div class="quiz-q">
+      <p>{{ loop.index }}. {{ q.q }}</p>
+      <div class="quiz-options">
+        {% for opt in q.options %}
+        <label>
+          <input type="radio" name="answer_{{ qi }}_group" onclick="setTestAnswer({{ q.idx }}, {{ loop.index0 }})">
+          <span>{{ opt }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div id="hidden-answers"></div>
+  <button type="submit" class="btn secondary block btn-big">Submit test {{ icon("check", 17) }}</button>
+</form>
+{% endif %}
+
+<a href="{{ url_for('roadmap', skill_id=skill_id) }}" class="btn ghost" style="margin:26px 0 10px;">
+  {{ icon("arrow-left", 15) }} Back to roadmap
+</a>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function filterLevel(level, btn) {
+    document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.playlist-card').forEach(card => {
+      card.style.display = (level === 'all' || card.dataset.level === level) ? 'flex' : 'none';
+    });
+  }
+
+  async function selectPlaylist(playlistId, creator, title, hasRealId) {
+    const wrap = document.getElementById('playlist-player-wrap');
+    const status = document.getElementById('playlist-status');
+    const player = document.getElementById('playlist-player');
+    wrap.style.display = 'block';
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    if (!hasRealId) {
+      status.textContent = `${creator}'s "${title}" isn't wired to a specific playlist ID yet in this demo — add its real playlist ID in data/curriculum.json to enable playback here.`;
+      player.src = '';
+      return;
+    }
+
+    status.textContent = `Loading ${creator} — checking if we can jump straight to this topic...`;
+    player.src = `https://www.youtube.com/embed/videoseries?list=${playlistId}`;
+
+    try {
+      const res = await fetch(`/api/playlist-jump?playlist_id=${encodeURIComponent(playlistId)}&topic_id={{ topic_id }}`);
+      const data = await res.json();
+      if (data.ok && data.video_id) {
+        player.src = `https://www.youtube.com/embed/${data.video_id}?list=${playlistId}`;
+        status.textContent = `Jumped to: "${data.title}" (video ${data.index + 1} in ${creator}'s playlist). Use the player's own playlist panel to browse other videos.`;
+      } else {
+        status.textContent = `Playing from the start of ${creator}'s playlist — add a free YOUTUBE_API_KEY in .env to auto-jump to the exact topic next time. Use the player's own playlist panel to pick a different video manually.`;
+      }
+    } catch (e) {
+      status.textContent = `Playing from the start of ${creator}'s playlist. Use the player's own playlist panel to browse other videos.`;
+    }
+  }
+
+  function showCreator(i) {
+    document.querySelectorAll('.creator-panel').forEach((el, idx) => el.style.display = idx === i ? 'block' : 'none');
+    document.querySelectorAll('.creator-tab').forEach((el, idx) => el.classList.toggle('active', idx === i));
+  }
+
+  async function loadTranscript(videoId, panelIdx, lang) {
+    if (!lang) return;
+    const box = document.getElementById('transcript-' + panelIdx);
+    box.innerHTML = '<span class="transcript-hint">Fetching and translating transcript...</span>';
+    try {
+      const res = await fetch(`/api/transcript?video_id=${encodeURIComponent(videoId)}&lang=${encodeURIComponent(lang)}`);
+      const data = await res.json();
+      if (!data.ok) {
+        box.innerHTML = `<span class="transcript-hint">${data.error || 'Transcript unavailable for this video.'} You can still use the player\'s own CC/gear icon to translate captions.</span>`;
+        return;
+      }
+      box.innerHTML = data.lines.map(line => {
+        const mins = Math.floor(line.start / 60);
+        const secs = String(Math.floor(line.start % 60)).padStart(2, '0');
+        return `<div class="transcript-line"><span class="transcript-time">${mins}:${secs}</span><span>${escapeHtmlLocal(line.text)}</span></div>`;
+      }).join('');
+    } catch (e) {
+      box.innerHTML = '<span class="transcript-hint">Transcript fetch failed. Use the player\'s own CC/gear icon instead.</span>';
+    }
+  }
+
+  function escapeHtmlLocal(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // build hidden qidx / answer inputs as the learner picks options
+  const testAnswers = {};
+  function setTestAnswer(qidx, optionIdx) {
+    testAnswers[qidx] = optionIdx;
+    const container = document.getElementById('hidden-answers');
+    container.innerHTML = '';
+    Object.entries(testAnswers).forEach(([qi, ans]) => {
+      const i1 = document.createElement('input'); i1.type = 'hidden'; i1.name = 'qidx'; i1.value = qi;
+      const i2 = document.createElement('input'); i2.type = 'hidden'; i2.name = 'answer'; i2.value = ans;
+      container.appendChild(i1); container.appendChild(i2);
+    });
+  }
+</script>
+{% endblock %}
